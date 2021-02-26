@@ -12,7 +12,6 @@ static vector *data_for_reading_vector;
 
 ssize_t proc_read(struct file *f, char __user *buf, size_t len, loff_t *off) {
   static int last_read_idx = 0;
-  printk(KERN_INFO "%s: current position offset %lld\n", THIS_MODULE->name, *off);
 
   if (data_for_reading_vector == NULL) {
     printk(KERN_ERR "%s: failed to read values from null results\n", THIS_MODULE->name);
