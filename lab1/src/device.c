@@ -53,7 +53,6 @@ uint32_t calculate_utf8_length(char *str, size_t str_length) {
     if (highest_2_bits_prefix != NON_FIRST_BYTE_PREFIX) {
       len++;
     }
-    cur_byte_index++;
   }
   return len;
 }
@@ -61,7 +60,8 @@ uint32_t calculate_utf8_length(char *str, size_t str_length) {
 static ssize_t dev_write(struct file *f, const char __user *buf, size_t len, loff_t *off) {
   char str[len];
   copy_from_user(str, buf, len);
-  vector_append(data_vector, calculate_utf8_length(str, len));
+  uint32_t symbols_count = calculate_utf8_length(str, len);
+  vector_append(data_vector, symbols_count);
   return len;
 }
 
