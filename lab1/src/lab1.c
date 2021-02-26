@@ -23,7 +23,7 @@ static int __init mod_init(void) {
     return -1;
   }
 
-  if (proc_init(MODULE_NAME, data_vector) < 0) {
+  if (proc_init(PROC_NAME, data_vector) < 0) {
     printk(KERN_ERR "Unable to init proc\n");
     vector_destroy(data_vector);
     return -1;
