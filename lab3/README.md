@@ -18,7 +18,30 @@ $ make
 
 ## Инструкция пользователя
 
-...
+После успешной сборки загрузить полученный модуль:
+```shell
+$ insmod lab3.ko
+```
+
+Проверить, что драйвер загрузился без ошибок с помощью команды dmesg, в выводе должно быть подобное:
+```shell
+[24313.650432] Module lab3 loaded
+[24313.650433] lab3: create link vni0
+[24313.650434] lab3: registered rx handler for enp0s3
+[24313.665287] IPv6: ADDRCONF(NETDEV_UP): vni0: link is not ready
+[24313.665321] lab3: device opened: name=vni0
+```
+
+Проверить файл в `/proc`:
+```shell
+$ cat /proc/lab3
+```
+
+Удалить модуль:
+```shell
+$ sudo rmmod lab3
+```
+
 
 ## Примеры использования
 
