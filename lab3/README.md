@@ -64,4 +64,33 @@ $ sudo rmmod lab3
 
 ## Примеры использования
 
-...
+Отправка `ICMP` пакетов на родительский интерфейс `enp0s3`. Для этого выполним команды:
+```shell
+$ ping -c 2 -p 5765206c6f76650a -s 8 192.168.1.45
+$ ping -c 2 -p 5365726765690a -s 7 192.168.1.45
+$ ping -c 2 -p 42796b6f76736b69690a -s 10 192.168.1.45
+```
+
+Проверка содержимого файла `/proc/lab3`:
+```
+$ cat /proc/lab3
+We love
+We love
+Sergei
+Sergei
+Bykovskii
+Bykovskii
+```
+
+Cтатистику по принятым пакетам выполнив:
+```
+$  ip -s link show vni0
+8: vni0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 08:00:27:cb:4b:6c brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast
+    276        6        0       0       0       0
+    TX: bytes  packets  errors  dropped carrier collsns
+    0          0        0       0       0       0
+
+```
+
