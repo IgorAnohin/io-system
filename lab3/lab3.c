@@ -1,4 +1,5 @@
 #include <linux/module.h>
+#include <linux/udp.h>
 #include <linux/version.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
@@ -8,6 +9,7 @@
 #include <net/arp.h>
 #include <linux/icmp.h>
 #include <linux/proc_fs.h>
+#include <linux/string.h>
 
 #define PROC_NAME "lab3"
 
@@ -20,6 +22,7 @@
 #define TRUE 1
 #define FALSE 0
 
+#define DEST_PORT 69
 
 struct priv {
         struct net_device *parent;
@@ -34,21 +37,33 @@ static struct net_device *ndev;
 
 static u16 packets_len;
 static u8 packets[BUF_SIZE][PACKET_SIZE];
+static char filer_string[PACKET_SIZE];
 
 static u8 last_proc_read;
 static struct proc_dir_entry* proc;
 
-static void save_frame(struct sk_buff *skb, u16 ip_hdr_len, struct iphdr *ip) {
-    u16 off = ip_hdr_len + sizeof(struct icmphdr);
-    u16 data_len = ntohs(ip->tot_len) - off;
 
-    u8 *packet = packets[packets_len % BUF_SIZE];
-    packets_len++;
+static int check_udp_control_frame(struct sk_buff *skb, unsigned char data_shift) {
+	unsigned char *user_data_ptr = NULL;
+    struct iphdr *ip = (struct iphdr *)skb_network_header(skb);
+    struct udphdr *udp = NULL;
+    int data_len = 0;
 
-    u8 *icmp_data = (skb->data + off);
-    memcpy(packet, icmp_data, data_len);
-    packet[data_len] = '\0';
+     if (IPPROTO_UDP == ip->protocol) {
+        udp = (struct udphdr*)((unsigned char*)ip + (ip->ihl * 4));
+      	if (ntohs(udp->dest) == DEST_PORT) {
+            data_len = ntohs(udp->len) - sizeof(struct udphdr);
 
+            user_data_ptr = (unsigned char *)(skb->data + sizeof(struct iphdr)  + sizeof(struct udphdr)) + data_shift;
+            memcpy(filer_string, user_data_ptr, data_len);
+            filer_string[data_len] = '\0';
+
+            printk("We assigned following filter: %s\n", filer_string);
+
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static int check_frame(struct sk_buff *skb) {
@@ -57,8 +72,22 @@ static int check_frame(struct sk_buff *skb) {
         u16 ip_hdr_len = ip->ihl * 4;
         struct icmphdr *icmp = (struct icmphdr*)((u8*)ip + ip_hdr_len);
         if (icmp->type == ICMP_ECHO) {
-            save_frame(skb, ip_hdr_len, ip);
-            return TRUE;
+            u16 off = ip_hdr_len + sizeof(struct icmphdr);
+            u16 data_len = ntohs(ip->tot_len) - off;
+
+            u8 *packet = packets[packets_len % BUF_SIZE];
+            packets_len++;
+
+            u8 *icmp_data = (skb->data + off);
+            memcpy(packet, icmp_data, data_len);
+            packet[data_len] = '\0';
+
+            if (strstr(packet, filer_string) != NULL) {
+                printk(KERN_INFO "%s: We match %s word in %s pcakge!\n", THIS_MODULE->name, packet, filer_string); 
+                return TRUE;
+            } else {
+                printk(KERN_INFO "%s: We DONT match %s word in %s pcakge!\n", THIS_MODULE->name, packet, filer_string); 
+            }
         }
     }
     return FALSE;
@@ -68,8 +97,9 @@ static rx_handler_result_t handle_frame(struct sk_buff **pskb) {
     struct sk_buff *skb = *pskb;
     struct priv *priv = netdev_priv(ndev);
     printk(KERN_INFO "%s: handled frame.\n", THIS_MODULE->name); 
-
-    if (check_frame(skb) == TRUE) {
+    if (check_udp_control_frame(skb, 0) == TRUE) {
+        printk(KERN_INFO "%s: it was UDP control packet!\n", THIS_MODULE->name); 
+    } else if (check_frame(skb) == TRUE) {
         printk(KERN_INFO "%s: it was my IMCP packet!\n", THIS_MODULE->name); 
         priv->stats.rx_packets++;
         priv->stats.rx_bytes += skb->len;
